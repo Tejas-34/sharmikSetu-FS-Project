@@ -1,11 +1,13 @@
 import React from 'react';
-import { BriefcaseBusiness, CalendarDays, FileBadge, Users, Plus, ArrowRight, UserPlus, FileText, CheckCircle2, Phone } from 'lucide-react';
+import { BriefcaseBusiness, CalendarDays, FileBadge, Users, Plus, ArrowRight, UserPlus, FileText, CheckCircle2, Phone, Ban, Trash2, CheckCircle, ShieldAlert, Eye, X } from 'lucide-react';
 import Button from '../ui/Button';
 
-const Dashboard = ({ currentUser, jobs, users, dashboardSummary, taskHistory, certificates, calendarEntries, navigate }) => {
+const Dashboard = ({ currentUser, jobs, users, dashboardSummary, taskHistory, certificates, calendarEntries, triggerDeleteUser, approveUser, toggleUserBan, navigate }) => {
   const isEmployer = currentUser.role === 'employer';
   const isAdmin = currentUser.role === 'admin';
   const isWorker = currentUser.role === 'worker';
+
+  const [selectedUser, setSelectedUser] = React.useState(null);
 
   // Employer specific data
   const employerJobs = jobs.filter((job) => job.employerId === currentUser.id);
@@ -26,8 +28,9 @@ const Dashboard = ({ currentUser, jobs, users, dashboardSummary, taskHistory, ce
 
   const cards = isAdmin
     ? [
-        { label: 'Users', value: users.length, helper: 'Registered accounts', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-        { label: 'Open jobs', value: jobs.filter((job) => job.status === 'OPEN').length, helper: 'Currently active', icon: BriefcaseBusiness, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+        { label: 'Total Users', value: users.length, helper: 'Registered accounts', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
+        { label: 'Pending Verification', value: users.filter(u => !u.isVerified && u.role !== 'admin').length, helper: 'Needs approval', icon: ShieldAlert, color: 'text-amber-600', bg: 'bg-amber-50' },
+        { label: 'Active listings', value: jobs.filter((job) => job.status === 'OPEN').length, helper: 'Jobs hiring', icon: BriefcaseBusiness, color: 'text-indigo-600', bg: 'bg-indigo-50' },
       ]
     : isEmployer
       ? [
@@ -211,6 +214,179 @@ const Dashboard = ({ currentUser, jobs, users, dashboardSummary, taskHistory, ce
             </div>
           </div>
         </section>
+      )}
+
+      {/* Admin Specific Sections */}
+      {isAdmin && (
+        <section className="mt-8 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm overflow-hidden animate-in fade-in">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-bold text-slate-950">System Users Management</h3>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm text-slate-600">
+              <thead className="bg-slate-50 text-[10px] uppercase font-bold tracking-wider text-slate-400">
+                <tr>
+                  <th className="px-4 py-3 rounded-l-xl">User</th>
+                  <th className="px-4 py-3">Role</th>
+                  <th className="px-4 py-3">Contact Information</th>
+                  <th className="px-4 py-3">Verification ID</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3 text-right rounded-r-xl">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {users.map(user => (
+                  <tr key={user.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-4 py-4">
+                      <div className="font-semibold text-slate-900">{user.name}</div>
+                      <div className="text-xs text-slate-500">{user.city || 'Location N/A'}</div>
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-bold uppercase ${
+                        user.role === 'admin' ? 'bg-rose-100 text-rose-700' :
+                        user.role === 'employer' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200 text-slate-700'
+                      }`}>
+                        {user.role}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4">
+                      <div>{user.email}</div>
+                      <div className="text-xs flex items-center gap-1 mt-0.5"><Phone size={10}/> {user.phoneNumber || 'N/A'}</div>
+                    </td>
+                    <td className="px-4 py-4">
+                      {user.verificationDocumentType ? (
+                         <div className="flex flex-col">
+                            <span className="text-[10px] font-bold uppercase text-slate-400">{user.verificationDocumentType}</span>
+                            <span className="font-mono text-xs">{user.verificationDocumentId}</span>
+                         </div>
+                      ) : <span className="text-slate-400 text-xs italic">Not Provided</span>}
+                    </td>
+                    <td className="px-4 py-4">
+                      {!user.isActive ? (
+                         <span className="inline-flex items-center gap-1 text-xs font-bold text-rose-600"><Ban size={12}/> Banned</span>
+                      ) : !user.isVerified ? (
+                         <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600"><ShieldAlert size={12}/> Pending</span>
+                      ) : (
+                         <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600"><CheckCircle size={12}/> Verified</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button onClick={() => setSelectedUser(user)} title="View User Details" className="p-2 border border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl transition-colors">
+                          <Eye size={16} />
+                        </button>
+                        {user.role !== 'admin' && !user.isVerified && (
+                          <button onClick={() => approveUser(user.id)} title="Verify User" className="p-2 border border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl transition-colors">
+                            <CheckCircle2 size={16} />
+                          </button>
+                        )}
+                        {user.role !== 'admin' && (
+                          <button onClick={() => toggleUserBan(user.id)} title={user.isActive ? 'Ban User' : 'Unban User'} className={`p-2 border rounded-xl transition-colors ${user.isActive ? 'border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100' : 'border-indigo-200 bg-indigo-50 text-indigo-600 hover:bg-indigo-100'}`}>
+                            <Ban size={16} />
+                          </button>
+                        )}
+                        {user.role !== 'admin' && (
+                          <button onClick={() => triggerDeleteUser(user.id)} title="Delete User" className="p-2 border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl transition-colors">
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {users.length === 0 && (
+                   <tr>
+                      <td colSpan="6" className="text-center py-8 text-slate-500">No users found.</td>
+                   </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {selectedUser && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+              <h3 className="text-xl font-bold text-slate-950">User Details</h3>
+              <button onClick={() => setSelectedUser(null)} className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-full transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Full Name</div>
+                  <div className="mt-1 font-medium text-slate-900">{selectedUser.name}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Role</div>
+                  <div className="mt-1 font-medium text-slate-900 uppercase">{selectedUser.role}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Email Address</div>
+                  <div className="mt-1 font-medium text-slate-900">{selectedUser.email}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Phone Number</div>
+                  <div className="mt-1 font-medium text-slate-900">{selectedUser.phoneNumber || 'Not provided'}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-wider text-slate-400">City / Location</div>
+                  <div className="mt-1 font-medium text-slate-900">{selectedUser.city || 'Not provided'}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Date of Birth</div>
+                  <div className="mt-1 font-medium text-slate-900">{selectedUser.dateOfBirth || 'Not provided'}</div>
+                </div>
+                <div className="col-span-2">
+                  <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Biography / Bio</div>
+                  <div className="mt-1 text-sm text-slate-700">{selectedUser.bio || 'No biography written.'}</div>
+                </div>
+                <div className="col-span-2 mt-4 pt-4 border-t border-slate-100">
+                  <h4 className="text-sm font-bold text-slate-900 mb-4">Verification Documents</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Document Type</div>
+                      <div className="font-semibold text-slate-900">{selectedUser.verificationDocumentType || 'Pending'}</div>
+                    </div>
+                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Document ID</div>
+                      <div className="font-mono font-medium text-slate-900">{selectedUser.verificationDocumentId || 'Not provided'}</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="col-span-2 grid grid-cols-2 gap-4">
+                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Current Status</div>
+                    <div className="mt-1">
+                      {!selectedUser.isActive ? (
+                        <span className="inline-flex items-center gap-1 text-sm font-bold text-rose-600"><Ban size={14}/> Account Banned</span>
+                      ) : !selectedUser.isVerified ? (
+                        <span className="inline-flex items-center gap-1 text-sm font-bold text-amber-600"><ShieldAlert size={14}/> Pending Approval</span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-sm font-bold text-emerald-600"><CheckCircle size={14}/> Fully Verified</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Registration Date</div>
+                    <div className="font-medium text-slate-900">{new Date(selectedUser.createdAt).toLocaleDateString()}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-slate-100 flex justify-end">
+              <Button onClick={() => setSelectedUser(null)} variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-50">
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

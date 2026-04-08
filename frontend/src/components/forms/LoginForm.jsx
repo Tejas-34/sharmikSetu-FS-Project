@@ -14,8 +14,9 @@ const LoginForm = ({ login, register, t }) => {
     role: 'worker',
     city: '',
     phone_number: '',
-    verification_document_type: 'aadhar',
+    verification_document_type: 'Aadhaar',
     verification_document_id: '',
+    date_of_birth: '',
   });
 
   const handleSubmit = (event) => {
@@ -106,7 +107,7 @@ const LoginForm = ({ login, register, t }) => {
             </div>
 
             {!isLogin && (
-              <div className="grid gap-3 grid-cols-3">
+              <div className="grid gap-3 grid-cols-2">
                 <Input
                   label="City"
                   value={formData.city}
@@ -118,12 +119,55 @@ const LoginForm = ({ login, register, t }) => {
                   value={formData.phone_number}
                   onChange={(event) => setFormData({ ...formData, phone_number: event.target.value })}
                   placeholder="10-digit mobile"
+                  maxLength={10}
+                  pattern="\d{10}"
+                  title="Phone number must be exactly 10 digits"
                 />
+              </div>
+            )}
+
+            {!isLogin && (
+              <div className="grid gap-3 grid-cols-2">
                 <Input
-                  label="ID (Aadhar)"
+                  label="Date of Birth"
+                  type="date"
+                  value={formData.date_of_birth}
+                  onChange={(event) => setFormData({ ...formData, date_of_birth: event.target.value })}
+                  required
+                />
+                <div className="flex flex-col gap-1.5 pt-0.5">
+                  <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500 ml-1">Doc Type</label>
+                  <select
+                    className="flex h-10 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 transition-all hover:border-slate-300 focus:border-amber-500 focus:outline-none focus:ring-4 focus:ring-amber-500/10"
+                    value={formData.verification_document_type}
+                    onChange={(event) => setFormData({ ...formData, verification_document_type: event.target.value, verification_document_id: '' })}
+                  >
+                    <option value="Aadhaar">Aadhaar (12 digits)</option>
+                    <option value="PAN Card">PAN Card</option>
+                    <option value="Voter ID">Voter ID</option>
+                  </select>
+                </div>
+              </div>
+            )}
+            
+            {!isLogin && (
+              <div className="w-full">
+                <Input
+                  label={`${formData.verification_document_type} Number`}
                   value={formData.verification_document_id}
-                  onChange={(event) => setFormData({ ...formData, verification_document_id: event.target.value })}
-                  placeholder="e.g. Aadhar"
+                  onChange={(event) => {
+                    let val = event.target.value;
+                    if (formData.verification_document_type === 'Aadhaar') {
+                      val = val.replace(/\D/g, '').slice(0, 12);
+                    } else if (formData.verification_document_type === 'PAN Card') {
+                      val = val.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
+                    } else if (formData.verification_document_type === 'Voter ID') {
+                      val = val.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
+                    }
+                    setFormData({ ...formData, verification_document_id: val });
+                  }}
+                  placeholder={`Enter ${formData.verification_document_type}`}
+                  required
                 />
               </div>
             )}

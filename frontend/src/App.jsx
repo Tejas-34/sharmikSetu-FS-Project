@@ -212,10 +212,15 @@ export default function App() {
         } catch {
           setCurrentUser(null);
           if (APP_ROUTES.some((route) => window.location.pathname.startsWith(route)) || window.location.pathname.startsWith('/auth/google/')) {
+            const isGoogleError = window.location.pathname.startsWith('/auth/google/error');
+            const urlParams = new URLSearchParams(window.location.search);
+            const errorMessage = urlParams.get('message') || 'Google authentication failed';
+
             window.history.replaceState({}, '', '/login');
             setCurrentPath('/login');
-            if (window.location.pathname.startsWith('/auth/google/error')) {
-              showToast('Google authentication failed', 'error');
+            
+            if (isGoogleError) {
+              showToast(errorMessage, 'error');
             }
           }
         }
@@ -353,6 +358,26 @@ export default function App() {
     });
   };
 
+  const approveUser = async (userId) => {
+    try {
+      const resp = await apiFetch(`/users/${userId}/approve/`, { method: 'POST' });
+      setUsers((prev) => prev.map(u => u.id === userId ? { ...u, is_verified: true, isVerified: true } : u));
+      showToast('User verified successfully.');
+    } catch (error) {
+      showToast(getErrorMessage(error, 'Failed to verify user'), 'error');
+    }
+  };
+
+  const toggleUserBan = async (userId) => {
+    try {
+      const resp = await apiFetch(`/users/${userId}/toggle_ban/`, { method: 'POST' });
+      setUsers((prev) => prev.map(u => u.id === userId ? { ...u, is_active: resp.user.is_active, isActive: resp.user.is_active } : u));
+      showToast(resp.message || 'User status updated successfully.');
+    } catch (error) {
+       showToast(getErrorMessage(error, 'Failed to update ban status'), 'error');
+    }
+  };
+
   const createJob = async (jobData) => {
     try {
       await apiFetch('/jobs/', {
@@ -365,8 +390,6 @@ export default function App() {
           skills_required: jobData.skillsRequired,
           site_address: jobData.siteAddress,
           site_city: jobData.siteCity,
-          site_latitude: jobData.siteLatitude,
-          site_longitude: jobData.siteLongitude,
           start_date: jobData.startDate || null,
           deadline: jobData.deadline || null,
         },
@@ -601,6 +624,8 @@ export default function App() {
         jobs={jobs}
         users={users}
         triggerDeleteUser={triggerDeleteUser}
+        approveUser={approveUser}
+        toggleUserBan={toggleUserBan}
         dashboardSummary={dashboardSummary}
         taskHistory={taskHistory}
         certificates={certificates}

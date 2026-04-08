@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CalendarPlus2, FileBadge, MapPinned, Settings, ShieldCheck, UserRound } from 'lucide-react';
+import { CalendarPlus2, FileBadge, Settings, ShieldCheck, UserRound } from 'lucide-react';
 
 import Button from '../ui/Button';
 import Input from '../ui/Input';
@@ -20,8 +20,6 @@ const ProfileView = ({
     city: currentUser.city || '',
     phone_number: currentUser.phoneNumber || '',
     bio: currentUser.bio || '',
-    latitude: currentUser.latitude || '',
-    longitude: currentUser.longitude || '',
     verification_document_type: currentUser.verificationDocumentType || 'aadhar',
     verification_document_id: currentUser.verificationDocumentId || '',
   });
@@ -40,8 +38,6 @@ const ProfileView = ({
       city: formData.city,
       phone_number: formData.phone_number,
       bio: formData.bio,
-      latitude: formData.latitude || null,
-      longitude: formData.longitude || null,
       verification_document_type: formData.verification_document_type,
       verification_document_id: formData.verification_document_id,
     });
@@ -103,10 +99,7 @@ const ProfileView = ({
                   rows={4}
                 />
               </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <Input label="Latitude" type="number" value={formData.latitude} onChange={(event) => setFormData({ ...formData, latitude: event.target.value })} />
-                <Input label="Longitude" type="number" value={formData.longitude} onChange={(event) => setFormData({ ...formData, longitude: event.target.value })} />
-              </div>
+              
               <div className="grid gap-4 md:grid-cols-2">
                 <Input label="Verification Type" value={formData.verification_document_type} onChange={(event) => setFormData({ ...formData, verification_document_type: event.target.value })} />
                 <Input label="Verification ID" value={formData.verification_document_id} onChange={(event) => setFormData({ ...formData, verification_document_id: event.target.value })} />
@@ -233,20 +226,6 @@ const ProfileView = ({
           </div>
         </section>
 
-        {(formData.latitude || formData.longitude) && (
-          <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-3 shadow-sm">
-            <div className="mb-3 flex items-center gap-2 px-3 pt-3 text-lg font-bold text-slate-950">
-              <MapPinned size={18} className="text-blue-600" />
-              Profile location
-            </div>
-            <iframe
-              title="Profile location"
-              src={`https://www.google.com/maps?q=${encodeURIComponent(`${formData.latitude},${formData.longitude}`)}&output=embed`}
-              className="h-56 w-full rounded-[1.4rem]"
-              loading="lazy"
-            />
-          </section>
-        )}
       </div>
     </div>
   );

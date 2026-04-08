@@ -16,11 +16,13 @@ export const normalizeUser = (user) => {
     name: user.full_name,
     phoneNumber: user.phone_number || '',
     bio: user.bio || '',
-    latitude: user.latitude,
-    longitude: user.longitude,
     isVerified: Boolean(user.is_verified),
+    isActive: user.is_active !== undefined ? Boolean(user.is_active) : true,
     verificationDocumentType: user.verification_document_type || '',
     verificationDocumentId: user.verification_document_id || '',
+    dateOfBirth: user.date_of_birth || '',
+    profilePhoto: user.profile_photo || '',
+    createdAt: user.created_at || '',
   };
 };
 
@@ -36,8 +38,6 @@ export const normalizeJob = (job) => ({
   employerCity: job.employer?.city || '',
   siteAddress: job.site_address || '',
   siteCity: job.site_city || '',
-  siteLatitude: job.site_latitude,
-  siteLongitude: job.site_longitude,
   wage: Number(job.daily_wage),
   requiredWorkers: job.required_workers,
   filledSlots: job.filled_slots,
