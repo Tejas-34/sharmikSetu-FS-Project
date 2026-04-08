@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CalendarPlus2, FileBadge, MapPinned, Settings, ShieldCheck, UserRound } from 'lucide-react';
+import { CalendarPlus2, FileBadge, KeyRound, MapPinned, Settings, ShieldCheck, Trash2, UserRound } from 'lucide-react';
 
 import Button from '../ui/Button';
 import Input from '../ui/Input';
