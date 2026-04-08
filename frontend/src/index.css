@@ -1,0 +1,160 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #f4efe4;
+  background:
+    radial-gradient(circle at top, rgba(245, 158, 11, 0.16), transparent 28%),
+    radial-gradient(circle at 20% 20%, rgba(14, 165, 233, 0.15), transparent 22%),
+    linear-gradient(180deg, #0c1724 0%, #101e2f 55%, #13263a 100%);
+  font-family: "Avenir Next", "IBM Plex Sans", "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  color: #d8e3f0;
+  background:
+    radial-gradient(circle at top right, rgba(249, 115, 22, 0.16), transparent 22%),
+    radial-gradient(circle at bottom left, rgba(14, 165, 233, 0.12), transparent 30%),
+    linear-gradient(180deg, #0b1521 0%, #0f1d2c 60%, #122338 100%);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+::selection {
+  background: rgba(245, 158, 11, 0.32);
+  color: #fff8ed;
+}
+
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4 {
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer components {
+  .shramiksetu-shell {
+    position: relative;
+    background-color: #f8fafc;
+  }
+
+  .shramiksetu-shell::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(115deg, rgba(255, 255, 255, 0.03), transparent 35%),
+      repeating-linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.015) 0,
+        rgba(255, 255, 255, 0.015) 1px,
+        transparent 1px,
+        transparent 120px
+      );
+    mask-image: radial-gradient(circle at center, black, transparent 90%);
+    opacity: 0.7;
+    z-index: 0;
+  }
+
+  .panel-surface {
+    background: linear-gradient(180deg, rgba(12, 25, 39, 0.94), rgba(9, 17, 27, 0.96));
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    box-shadow: 0 24px 80px rgba(3, 9, 18, 0.35);
+    backdrop-filter: blur(18px);
+  }
+
+  .panel-surface-light {
+    background: linear-gradient(180deg, rgba(245, 247, 250, 0.96), rgba(226, 232, 240, 0.9));
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    box-shadow: 0 20px 70px rgba(15, 23, 42, 0.16);
+  }
+
+  .signal-grid {
+    background-image:
+      linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+
+  .animated-border {
+    position: relative;
+  }
+
+  .animated-border::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(130deg, rgba(245, 158, 11, 0.7), rgba(14, 165, 233, 0.4), rgba(245, 158, 11, 0.12));
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0.65;
+  }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -14px, 0); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.45; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.04); }
+}
+
+@keyframes slide-up-fade {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 24px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes sweep {
+  0% { transform: translateX(-10%) rotate(0deg); }
+  50% { transform: translateX(12%) rotate(2deg); }
+  100% { transform: translateX(-10%) rotate(0deg); }
+}
+
+@layer utilities {
+  .animate-float-slow {
+    animation: float-slow 6s ease-in-out infinite;
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 4s ease-in-out infinite;
+  }
+
+  .animate-slide-up-fade {
+    animation: slide-up-fade 0.7s ease-out both;
+  }
+
+  .animate-sweep {
+    animation: sweep 12s ease-in-out infinite;
+  }
+}
