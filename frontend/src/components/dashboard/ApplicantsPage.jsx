@@ -79,7 +79,7 @@ const ApplicantsPage = ({ jobs, currentUser, updateApplicationStatus, removeWork
                       </div>
                       <div className="flex items-center gap-1 text-blue-600 font-bold text-sm border-l border-slate-200 pl-2">
                         <Award size={14} className={worker.certificateCount > 0 ? "text-blue-600" : "text-slate-300"} />
-                        {worker.certificateCount || 0} Certs
+                        Certificates : {worker.certificateCount || 0} 
                       </div>
                       <div className="text-sm text-slate-500 border-l border-slate-200 pl-2">{worker.jobTitle}</div>
                     </div>
@@ -103,14 +103,14 @@ const ApplicantsPage = ({ jobs, currentUser, updateApplicationStatus, removeWork
                   )}
                 </div>
 
-                <button 
+                {/* <button 
                   onClick={() => navigate?.(`/app/messages?with_user=${worker.id}&job_id=${worker.jobId}`)}
                   className="mt-3 flex items-center justify-center gap-2 w-full rounded-xl border border-slate-200 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-all hover:border-slate-300"
                   title="Message worker"
                 >
                   <MessageSquare size={16} />
                   Message worker
-                </button>
+                </button> */}
 
                 <div className="mt-4 flex items-center justify-between">
                   <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{worker.status}</div>
