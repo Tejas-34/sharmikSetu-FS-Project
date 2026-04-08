@@ -23,7 +23,7 @@ const ProfileView = ({
     city: currentUser.city || '',
     phone_number: currentUser.phoneNumber || '',
     bio: currentUser.bio || '',
-    verification_document_type: currentUser.verificationDocumentType || 'aadhar',
+    verification_document_type: currentUser.verificationDocumentType || 'Aadhaar',
     verification_document_id: currentUser.verificationDocumentId || '',
   });
   const [calendarForm, setCalendarForm] = useState({

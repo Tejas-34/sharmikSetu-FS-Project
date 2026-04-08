@@ -310,16 +310,12 @@ export default function App() {
   };
 
   const loginWithPasskey = async (email) => {
-    if (!email) {
-      showToast('Email is required for passkey login', 'error');
-      return;
-    }
-
+    const normalizedEmail = (email || '').trim().toLowerCase();
     try {
       assertPasskeySupported();
       const optionsData = await apiFetch('/auth/passkey/login/options', {
         method: 'POST',
-        body: { email },
+        body: normalizedEmail ? { email: normalizedEmail } : {},
       });
       const credential = await navigator.credentials.get({
         publicKey: parseAuthenticationOptions(optionsData.publicKey),

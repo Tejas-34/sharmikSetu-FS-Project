@@ -8,7 +8,7 @@ const CompleteProfileForm = ({ completeProfile, currentUser }) => {
     role: 'worker',
     city: '',
     phone_number: '',
-    verification_document_type: 'aadhar',
+    verification_document_type: 'Aadhaar',
     verification_document_id: '',
   });
 
@@ -86,13 +86,13 @@ const CompleteProfileForm = ({ completeProfile, currentUser }) => {
           </div>
           
           <div className="mb-8">
-             <Input
-               label="Verification ID (Aadhar Number)"
-               value={formData.verification_document_id}
-               onChange={(event) => setFormData({ ...formData, verification_document_id: event.target.value })}
-               placeholder="12 digit ID"
-               required
-             />
+              <Input
+               label="Verification ID (Aadhaar Number)"
+                value={formData.verification_document_id}
+                onChange={(event) => setFormData({ ...formData, verification_document_id: event.target.value })}
+                placeholder="12 digit ID"
+                required
+              />
           </div>
 
           <Button type="submit" className="w-full">

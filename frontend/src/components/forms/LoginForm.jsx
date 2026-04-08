@@ -109,6 +109,11 @@ const LoginForm = ({ login, register, loginWithPasskey, registerWithPasskey, t }
                 ? 'Opening passkey prompt...'
                 : (isLogin ? 'Continue with Passkey' : 'Sign up with Passkey')}
             </Button>
+            {isLogin && (
+              <p className="text-[11px] text-slate-500 -mt-1">
+                Tip: Email is optional for passkey login. Choose your saved account from the passkey picker.
+              </p>
+            )}
 
             <div className="py-1 flex items-center before:mt-0.5 before:flex-1 before:border-t before:border-slate-200 after:mt-0.5 after:flex-1 after:border-t after:border-slate-200">
               <span className="mx-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">or use email</span>
