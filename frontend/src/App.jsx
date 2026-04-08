@@ -5,6 +5,13 @@ import { TRANSLATIONS } from './i18n/translations';
 import { WORKER_RIGHTS, EMPLOYER_LAWS } from './constants';
 import { apiFetch, ensureCsrf, normalizeJob, normalizeUser } from './utils/api';
 import { getErrorMessage } from './utils/messages';
+import {
+  assertPasskeySupported,
+  parseAuthenticationOptions,
+  parseRegistrationOptions,
+  serializeAuthenticationCredential,
+  serializeRegistrationCredential,
+} from './utils/webauthn';
 
 import ConfirmModal from './components/modals/ConfirmModal';
 import AlertModal from './components/modals/AlertModal';
@@ -40,6 +47,7 @@ export default function App() {
   const [taskHistory, setTaskHistory] = useState({ ongoing: [], completed: [] });
   const [calendarEntries, setCalendarEntries] = useState([]);
   const [certificates, setCertificates] = useState([]);
+  const [passkeyCredentials, setPasskeyCredentials] = useState([]);
   const [toast, setToast] = useState(null);
 
   const [confirmDialog, setConfirmDialog] = useState({
@@ -142,6 +150,15 @@ export default function App() {
     }
   };
 
+  const fetchPasskeyCredentials = async () => {
+    try {
+      const data = await apiFetch('/auth/passkey/credentials');
+      setPasskeyCredentials(data?.credentials || []);
+    } catch {
+      setPasskeyCredentials([]);
+    }
+  };
+
   useEffect(() => {
     const initializeApp = async () => {
       try {
@@ -151,6 +168,7 @@ export default function App() {
           const authData = await apiFetch('/auth/status');
           const user = normalizeUser(authData.user);
           setCurrentUser(user);
+          await fetchPasskeyCredentials();
           const jobsData = await apiFetch('/jobs/');
           setJobs((jobsData?.results || jobsData || []).map(normalizeJob));
 
@@ -196,7 +214,11 @@ export default function App() {
             }
           }
 
-          if (window.location.pathname === '/login' || window.location.pathname.startsWith('/auth/google/success')) {
+          const needsPasskeyCompletion = user.oauth_provider === 'passkey' && !user.is_oauth_complete;
+          if (needsPasskeyCompletion) {
+            window.history.replaceState({}, '', '/app/complete-profile');
+            setCurrentPath('/app/complete-profile');
+          } else if (window.location.pathname === '/login' || window.location.pathname.startsWith('/auth/google/success')) {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('requires_completion') === 'true') {
               window.history.replaceState({}, '', '/app/complete-profile');
@@ -211,6 +233,7 @@ export default function App() {
           }
         } catch {
           setCurrentUser(null);
+          setPasskeyCredentials([]);
           if (APP_ROUTES.some((route) => window.location.pathname.startsWith(route)) || window.location.pathname.startsWith('/auth/google/')) {
             const isGoogleError = window.location.pathname.startsWith('/auth/google/error');
             const urlParams = new URLSearchParams(window.location.search);
@@ -233,6 +256,30 @@ export default function App() {
     initializeApp();
   }, []);
 
+  const hydrateAuthenticatedUser = async (user) => {
+    setCurrentUser(user);
+    await fetchPasskeyCredentials();
+    await fetchJobs();
+    if (user.role === 'admin') {
+      await fetchUsers();
+      setDashboardSummary(null);
+      setTaskHistory({ ongoing: [], completed: [] });
+      setCalendarEntries([]);
+      setCertificates([]);
+      return;
+    }
+
+    await fetchDashboardSummary();
+    await fetchCertificates();
+    if (user.role === 'worker') {
+      await fetchTaskHistory();
+      await fetchCalendarEntries();
+    } else {
+      setTaskHistory({ ongoing: [], completed: [] });
+      setCalendarEntries([]);
+    }
+  };
+
   const login = async (email, password) => {
     try {
       const data = await apiFetch('/auth/login', {
@@ -241,25 +288,7 @@ export default function App() {
       });
 
       const user = normalizeUser(data.user);
-      setCurrentUser(user);
-      await fetchJobs();
-      if (user.role === 'admin') {
-        await fetchUsers();
-        setDashboardSummary(null);
-        setTaskHistory({ ongoing: [], completed: [] });
-        setCalendarEntries([]);
-        setCertificates([]);
-      } else {
-        await fetchDashboardSummary();
-        await fetchCertificates();
-        if (user.role === 'worker') {
-          await fetchTaskHistory();
-          await fetchCalendarEntries();
-        } else {
-          setTaskHistory({ ongoing: [], completed: [] });
-          setCalendarEntries([]);
-        }
-      }
+      await hydrateAuthenticatedUser(user);
       navigate('/app/dashboard');
       showToast(`${t('welcome')}, ${user.name}`);
     } catch (error) {
@@ -277,6 +306,137 @@ export default function App() {
       showToast('Account created successfully');
     } catch (error) {
       showToast(getErrorMessage(error, 'Registration failed'), 'error');
+    }
+  };
+
+  const loginWithPasskey = async (email) => {
+    if (!email) {
+      showToast('Email is required for passkey login', 'error');
+      return;
+    }
+
+    try {
+      assertPasskeySupported();
+      const optionsData = await apiFetch('/auth/passkey/login/options', {
+        method: 'POST',
+        body: { email },
+      });
+      const credential = await navigator.credentials.get({
+        publicKey: parseAuthenticationOptions(optionsData.publicKey),
+      });
+      if (!credential) {
+        throw new Error('Passkey login was cancelled.');
+      }
+
+      const data = await apiFetch('/auth/passkey/login/verify', {
+        method: 'POST',
+        body: {
+          credential: serializeAuthenticationCredential(credential),
+        },
+      });
+
+      const user = normalizeUser(data.user);
+      await hydrateAuthenticatedUser(user);
+      if (data?.requires_completion) {
+        navigate('/app/complete-profile');
+        showToast('Please complete your profile details');
+      } else {
+        navigate('/app/dashboard');
+        showToast(`${t('welcome')}, ${user.name}`);
+      }
+    } catch (error) {
+      showToast(getErrorMessage(error, 'Passkey login failed'), 'error');
+    }
+  };
+
+  const registerWithPasskey = async (userData) => {
+    if (!userData.email) {
+      showToast('Email is required for passkey sign up', 'error');
+      return;
+    }
+
+    try {
+      assertPasskeySupported();
+      const optionsData = await apiFetch('/auth/passkey/register/options', {
+        method: 'POST',
+        body: {
+          email: userData.email,
+          full_name: userData.full_name,
+          role: userData.role,
+          city: userData.city || '',
+          phone_number: userData.phone_number || '',
+          verification_document_type: userData.verification_document_type || '',
+          verification_document_id: userData.verification_document_id || '',
+        },
+      });
+      const credential = await navigator.credentials.create({
+        publicKey: parseRegistrationOptions(optionsData.publicKey),
+      });
+      if (!credential) {
+        throw new Error('Passkey sign up was cancelled.');
+      }
+
+      const data = await apiFetch('/auth/passkey/register/verify', {
+        method: 'POST',
+        body: {
+          credential: serializeRegistrationCredential(credential),
+        },
+      });
+
+      const user = normalizeUser(data.user);
+      await hydrateAuthenticatedUser(user);
+      if (data?.requires_completion) {
+        navigate('/app/complete-profile');
+        showToast('Account created. Please complete your profile details');
+      } else {
+        navigate('/app/dashboard');
+        showToast('Account created successfully with passkey');
+      }
+    } catch (error) {
+      showToast(getErrorMessage(error, 'Passkey registration failed'), 'error');
+    }
+  };
+
+  const saveProfilePasskey = async () => {
+    try {
+      assertPasskeySupported();
+      const optionsData = await apiFetch('/auth/passkey/enroll/options', {
+        method: 'POST',
+        body: {},
+      });
+      const credential = await navigator.credentials.create({
+        publicKey: parseRegistrationOptions(optionsData.publicKey),
+      });
+      if (!credential) {
+        throw new Error('Passkey enrollment was cancelled.');
+      }
+
+      const data = await apiFetch('/auth/passkey/enroll/verify', {
+        method: 'POST',
+        body: {
+          credential: serializeRegistrationCredential(credential),
+        },
+      });
+
+      if (data?.user) {
+        setCurrentUser(normalizeUser(data.user));
+      }
+      await fetchPasskeyCredentials();
+      showToast(data?.message || 'Passkey saved successfully');
+    } catch (error) {
+      showToast(getErrorMessage(error, 'Could not save passkey'), 'error');
+    }
+  };
+
+  const deleteProfilePasskey = async (credentialId) => {
+    try {
+      const data = await apiFetch(`/auth/passkey/credentials/${credentialId}`, {
+        method: 'DELETE',
+      });
+      await fetchPasskeyCredentials();
+      showToast(data?.message || 'Passkey deleted successfully');
+    } catch (error) {
+      showToast(getErrorMessage(error, 'Could not delete passkey'), 'error');
     }
   };
 
@@ -298,6 +458,7 @@ export default function App() {
         setTaskHistory({ ongoing: [], completed: [] });
         setCalendarEntries([]);
         setCertificates([]);
+        setPasskeyCredentials([]);
         navigate('/');
         setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
         showToast('Logged out successfully');
@@ -490,7 +651,13 @@ export default function App() {
     if (resolvedPath === '/login') {
       return (
         <div className="flex items-center justify-center p-4">
-          <LoginForm login={login} register={register} t={t} />
+          <LoginForm
+            login={login}
+            register={register}
+            loginWithPasskey={loginWithPasskey}
+            registerWithPasskey={registerWithPasskey}
+            t={t}
+          />
         </div>
       );
     }
@@ -506,6 +673,9 @@ export default function App() {
         <ProfileView
           currentUser={currentUser}
           updateUserProfile={updateUserProfile}
+          saveProfilePasskey={saveProfilePasskey}
+          deleteProfilePasskey={deleteProfilePasskey}
+          passkeyCredentials={passkeyCredentials}
           navigate={navigate}
           taskHistory={taskHistory}
           certificates={certificates}
@@ -521,7 +691,10 @@ export default function App() {
           currentUser={currentUser}
           completeProfile={async (data) => {
             try {
-              await apiFetch('/auth/google/complete', {
+              const completionEndpoint = currentUser?.oauth_provider === 'passkey'
+                ? '/auth/passkey/complete'
+                : '/auth/google/complete';
+              await apiFetch(completionEndpoint, {
                 method: 'POST',
                 body: data,
               });

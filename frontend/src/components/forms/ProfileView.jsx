@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CalendarPlus2, FileBadge, Settings, ShieldCheck, UserRound } from 'lucide-react';
+import { CalendarPlus2, FileBadge, MapPinned, Settings, ShieldCheck, UserRound } from 'lucide-react';
 
 import Button from '../ui/Button';
 import Input from '../ui/Input';
@@ -7,6 +7,9 @@ import Input from '../ui/Input';
 const ProfileView = ({
   currentUser,
   updateUserProfile,
+  saveProfilePasskey,
+  deleteProfilePasskey,
+  passkeyCredentials,
   navigate,
   taskHistory,
   certificates,
@@ -30,6 +33,9 @@ const ProfileView = ({
     is_blocked: false,
     notes: '',
   });
+  const [isSavingPasskey, setIsSavingPasskey] = useState(false);
+  const [deletingPasskeyId, setDeletingPasskeyId] = useState(null);
+  const hasPasskey = (passkeyCredentials || []).length > 0;
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -53,6 +59,33 @@ const ProfileView = ({
       is_blocked: false,
       notes: '',
     });
+  };
+
+  const handleSavePasskey = async () => {
+    if (isSavingPasskey) return;
+    setIsSavingPasskey(true);
+    try {
+      await saveProfilePasskey();
+    } finally {
+      setIsSavingPasskey(false);
+    }
+  };
+
+  const handleDeletePasskey = async (credentialId) => {
+    if (deletingPasskeyId) return;
+    setDeletingPasskeyId(credentialId);
+    try {
+      await deleteProfilePasskey(credentialId);
+    } finally {
+      setDeletingPasskeyId(null);
+    }
+  };
+
+  const formatPasskeyDate = (value) => {
+    if (!value) return 'Never used';
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return 'Unknown';
+    return parsed.toLocaleString();
   };
 
   return (
@@ -134,6 +167,57 @@ const ProfileView = ({
             <div className="rounded-2xl border border-slate-200 p-4">
               <div className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Certificates</div>
               <div className="mt-2 text-slate-900">{(certificates || []).length} available</div>
+            </div>
+            <div className="rounded-2xl border border-indigo-200 bg-indigo-50/70 p-4">
+              <div className="flex items-center gap-2 font-semibold text-slate-950">
+                <KeyRound size={16} className="text-indigo-700" />
+                Passkey login
+              </div>
+              {!hasPasskey ? (
+                <>
+                  <p className="mt-2 text-xs text-slate-600">
+                    Add a passkey for this account so next login can use biometrics or device PIN.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mt-3 w-full border-indigo-200 bg-white text-indigo-700 hover:bg-indigo-100"
+                    onClick={handleSavePasskey}
+                    disabled={isSavingPasskey}
+                  >
+                    {isSavingPasskey ? 'Opening passkey prompt...' : 'Save passkey for this account'}
+                  </Button>
+                </>
+              ) : (
+                <div className="mt-3 space-y-2">
+                  {(passkeyCredentials || []).map((passkey) => (
+                    <div key={passkey.id} className="rounded-xl border border-indigo-200 bg-white p-3">
+                      <div className="text-xs font-semibold text-slate-900">{passkey.key_hint}</div>
+                      <div className="mt-1 text-[11px] text-slate-600">
+                        Added: {formatPasskeyDate(passkey.created_at)}
+                      </div>
+                      <div className="text-[11px] text-slate-600">
+                        Last used: {formatPasskeyDate(passkey.last_used_at)}
+                      </div>
+                      <div className="mt-1 text-[11px] text-slate-500">
+                        {Array.isArray(passkey.transports) && passkey.transports.length
+                          ? `Transport: ${passkey.transports.join(', ')}`
+                          : 'Transport: Not provided'}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="mt-3 w-full border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
+                        onClick={() => handleDeletePasskey(passkey.id)}
+                        disabled={deletingPasskeyId === passkey.id}
+                      >
+                        <Trash2 size={14} />
+                        {deletingPasskeyId === passkey.id ? 'Deleting passkey...' : 'Delete this passkey'}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </section>
