@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Building2, ChevronRight, HardHat, MapPin, ShieldCheck, User } from 'lucide-react';
+import { Building2, ChevronRight, HardHat, KeyRound, User } from 'lucide-react';
 
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 
-const LoginForm = ({ login, register, t }) => {
+const LoginForm = ({ login, register, loginWithPasskey, registerWithPasskey, t }) => {
   const [isLogin, setIsLogin] = useState(true);
+  const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
@@ -29,6 +30,20 @@ const LoginForm = ({ login, register, t }) => {
 
   const handleGoogleLogin = () => {
     window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/auth/google?mode=redirect`;
+  };
+
+  const handlePasskeySubmit = async () => {
+    if (passkeyLoading) return;
+    setPasskeyLoading(true);
+    try {
+      if (isLogin) {
+        await loginWithPasskey(formData.email);
+      } else {
+        await registerWithPasskey(formData);
+      }
+    } finally {
+      setPasskeyLoading(false);
+    }
   };
 
   return (
@@ -79,6 +94,19 @@ const LoginForm = ({ login, register, t }) => {
                 <path fill="#1976D2" d="M43.6 20H42V20H24v8h11.3c-.8 2.7-2.6 4.9-5 6.3l6.6 4.8C40.6 35.5 44 30.2 44 24c0-1.3-.1-2.6-.4-4z"/>
               </svg>
               {isLogin ? 'Continue with Google' : 'Sign up with Google'}
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full flex justify-center items-center gap-2 border border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300 transition-all h-10 rounded-xl shadow-sm text-sm font-semibold"
+              onClick={handlePasskeySubmit}
+              disabled={passkeyLoading}
+            >
+              <KeyRound size={16} />
+              {passkeyLoading
+                ? 'Opening passkey prompt...'
+                : (isLogin ? 'Continue with Passkey' : 'Sign up with Passkey')}
             </Button>
 
             <div className="py-1 flex items-center before:mt-0.5 before:flex-1 before:border-t before:border-slate-200 after:mt-0.5 after:flex-1 after:border-t after:border-slate-200">
@@ -198,7 +226,7 @@ const LoginForm = ({ login, register, t }) => {
             </button>
           </div>
 
-          {isLogin && (
+          {/* {isLogin && (
             <div className="mt-4 rounded-xl border border-dashed border-slate-200 bg-white/50 p-3 flex flex-col items-center">
               <div className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Test Accounts</div>
               <div className="flex flex-wrap justify-center gap-2">
@@ -207,11 +235,11 @@ const LoginForm = ({ login, register, t }) => {
                 <button onClick={() => setFormData({ ...formData, email: 'admin@site.com', password: '12345678' })} className="rounded-md bg-white border border-slate-200 px-3 py-1 text-[10px] font-bold text-slate-600 hover:text-rose-600 hover:shadow-sm">Admin</button>
               </div>
             </div>
-          )}
+          )} */}
         </div>
       </div>
     </div>
   );
 };
 
-export default LoginForm;;
+export default LoginForm;
